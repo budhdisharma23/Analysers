@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">Analysers</string>
+    <string name="country_info">Country Information: %s</string>
+    <string name="country_info_data">Total Tested: %1$d, Positive: %2$d%% (%3$d/%4$d)</string>
+    <string name="full_report_line">%s, Tested = %d, Positive = %d%% (%d)</string>
+</resources>

@@ -1,0 +1,4 @@
+<resources>
+    <dimen name="spinner_dropdown_padding">8dp</dimen>
+    <dimen name="spinner_dropdown_item_height">48dp</dimen>
+</resources>

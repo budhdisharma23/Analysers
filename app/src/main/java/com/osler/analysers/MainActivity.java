@@ -1,29 +1,23 @@
 package com.osler.analysers;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -35,13 +29,16 @@ import java.util.Scanner;
 public class MainActivity extends AppCompatActivity {
 
     private Spinner countrySpinner;
-    private TextView countryInfoText;
-    private TextView countryInfoData;
+    private TextView mTested, mPositive;
     private ProgressBar progressBar;
-    private Button fullReportButton;
 
     private List<String> countryList;
     private Map<String, CountryData> countryDataMap;
+    private Map<String, Long> siteCalibrationExpiryMap;
+
+    // Declare a boolean variable to keep track of selection status
+    private boolean isItemSelected = false;
+    private int selectedPosition = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,10 +47,21 @@ public class MainActivity extends AppCompatActivity {
 
         // Initialize views
         countrySpinner = findViewById(R.id.country_spinner);
-        countryInfoText = findViewById(R.id.country_info_text);
-        countryInfoData = findViewById(R.id.country_info_data);
+        mTested = findViewById(R.id.tested);
+        mPositive = findViewById(R.id.positive);
         progressBar = findViewById(R.id.progress_bar);
-        fullReportButton = findViewById(R.id.full_report_button);
+
+        // Set the initial progress of the SeekBar to zero
+        progressBar.setProgress(0);
+
+        // Find the Full Report button and set its click listener
+        Button fullReportButton = findViewById(R.id.full_report_button);
+        fullReportButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                generateManagementReport();
+            }
+        });
 
         // Load data from CSV and update UI
         try {
@@ -64,42 +72,99 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Error reading data from CSV", Toast.LENGTH_SHORT).show();
         }
 
+        // Disable SeekBar touch interactions
+        progressBar.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return true; // Prevent touch events from being propagated
+            }
+        });
+
         // Set listener for Spinner selection
         countrySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String selectedCountry = countryList.get(position);
-                updateCountryInfo(selectedCountry);
+                // Check if the user selected a valid country (not "Select")
+                if (position > 0) {
+                    String selectedCountry = countryList.get(position);
+                    updateCountryInfo(selectedCountry);
+
+                    // Update SeekBar progress and color based on the selected country's positive percentage
+                    CountryData countryData = countryDataMap.get(selectedCountry);
+                    if (countryData != null) {
+                        int positivePercentage = (countryData.getTested() == 0) ? 0 : (int) (((double) countryData.getPositive() / countryData.getTested()) * 100);
+                        progressBar.setProgress(positivePercentage);
+
+                        // Change the color of the SeekBar progress dynamically
+                        if (positivePercentage > 50) {
+                            progressBar.setProgressTintList(ColorStateList.valueOf(Color.RED));
+                        } else {
+                            progressBar.setProgressTintList(ColorStateList.valueOf(Color.GREEN));
+                        }
+                    }
+                } else {
+                    // Clear the country info and reset SeekBar progress and color if "Select" is chosen
+                    String defaultTestedInfo = getString(R.string.tested);
+                    String defaultPositiveInfo = getString(R.string.positive);
+                    mTested.setText(defaultTestedInfo);
+                    mPositive.setText(defaultPositiveInfo);
+                    progressBar.setProgress(0);
+                    progressBar.setProgressTintList(ColorStateList.valueOf(getResources().getColor(R.color.default_color))); // Set default color to your defined default_color
+                }
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
+                // Do nothing when nothing is selected
             }
         });
-        // Set up "Full Report" button click listener
-        fullReportButton.setOnClickListener(new View.OnClickListener() {
+
+        // Set the layout's touch listener to detect touch events outside the cardView
+        findViewById(R.id.main_layout).setOnTouchListener(new View.OnTouchListener() {
             @Override
-            public void onClick(View v) {
-                generateManagementReport();
+            public boolean onTouch(View v, MotionEvent event) {
+                // Check if an item was previously selected before clearing the text and progress bar
+                if (isItemSelected) {
+                    // Clear the country info and progress bar
+                    mTested.setText("");
+                    mPositive.setText("");
+                    progressBar.setProgress(0);
+
+                    // Deselect the spinner item by setting the selection to -1
+                    countrySpinner.setSelection(-1);
+
+                    // Set the boolean variable to false as "Select" is chosen
+                    isItemSelected = false;
+
+                    // Consume the touch event to prevent it from propagating to other views
+                    return true;
+                }
+                // Return false to allow the touch event to propagate to other views
+                return false;
             }
         });
     }
 
-    private void updateCountryInfo(String selectedCountry) {
+    // New method to update the UI for the selected country
+    private void updateUIForSelectedCountry(String selectedCountry) {
         CountryData countryData = countryDataMap.get(selectedCountry);
         if (countryData != null) {
-            int tested = countryData.getTested();
-            int positive = countryData.getPositive();
-            int percentagePositive = (tested == 0) ? 0 : (positive * 100) / tested;
+            String testedInfo = getString(R.string.country_tested_info, countryData.getTested());
+            String positiveInfo = getString(R.string.country_info_data, (int) (((double) countryData.getPositive() / countryData.getTested()) * 100),
+                    countryData.getPositive(), countryData.getTested());
+            mTested.setText(testedInfo);
+            mPositive.setText(positiveInfo);
 
-            String countryInfo = getString(R.string.country_info_data,
-                    tested, percentagePositive, positive, tested);
-            countryInfoText.setText(getString(R.string.country_info, selectedCountry));
-            countryInfoData.setText(countryInfo);
-            progressBar.setProgress(percentagePositive);
+            // Set the SeekBar progress and color based on positive percentage
+            int positivePercentage = (int) ((countryData.getPositive() * 100.0) / countryData.getTested());
+            progressBar.setProgress(positivePercentage);
+            if (positivePercentage < 50) {
+                progressBar.setProgressTintList(ColorStateList.valueOf(getResources().getColor(R.color.green)));
+            } else {
+                progressBar.setProgressTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorRed)));
+            }
         }
     }
-
 
     private void updateUI() {
         // Calculate the percentage of positive cases
@@ -167,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
                         countryData = new CountryData();
                         countryData.setTested(tested);
                         countryData.setPositive(positive);
-                        countryData.setCountry(country); // Set the country name using the setCountry method
+                        countryData.setCountry(country);
                         countryDataMap.put(country, countryData);
                         countryList.add(country);
                     } else {
@@ -230,30 +295,81 @@ public class MainActivity extends AppCompatActivity {
                     updateCountryInfo(selectedCountry);
                 } else {
                     // Clear the country info and progress bar if "Select" is chosen
-                    countryInfoText.setText("");
-                    countryInfoData.setText("");
+                    mTested.setText("");
+                    mPositive.setText("");
                     progressBar.setProgress(0);
                 }
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                // Do nothing
+                if (isItemSelected) {
+                    String selectedCountry = countryList.get(selectedPosition);
+                    updateCountryInfo(selectedCountry);
+                }
             }
         });
-
-        // Set the Spinner dropdown height to show only 4 items at a time
-        int dropdownHeightInPixels = getResources().getDimensionPixelSize(R.dimen.spinner_dropdown_item_height);
-        countrySpinner.setDropDownVerticalOffset(dropdownHeightInPixels);
     }
 
+    private void updateCountryInfo(String selectedCountry) {
+        CountryData countryData = countryDataMap.get(selectedCountry);
+        if (countryData != null) {
+            String testedInfo = getString(R.string.country_tested_info, countryData.getTested());
+            String positiveInfo = getString(R.string.country_info_data, (int) (((double) countryData.getPositive() / countryData.getTested()) * 100),
+                    countryData.getPositive(), countryData.getTested());
+            mTested.setText(testedInfo);
+            mPositive.setText(positiveInfo);
+
+            // Set the SeekBar progress and color based on positive percentage
+            int positivePercentage = (int) ((countryData.getPositive() * 100.0) / countryData.getTested());
+            progressBar.setProgress(positivePercentage);
+            if (positivePercentage < 50) {
+                progressBar.setProgressTintList(ColorStateList.valueOf(getResources().getColor(R.color.green)));
+            } else {
+                progressBar.setProgressTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorRed)));
+            }
+        }
+    }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_UP) {
-            int itemCount = 4; // Change this value to set the number of visible items
-            countrySpinner.setSelection(Math.min(itemCount, countryList.size()) - 1);
+            // Get the x and y coordinates of the touch event
+            float x = event.getX();
+            float y = event.getY();
+
+            // Get the position of the cardView relative to the screen
+            int[] location = new int[2];
+            View cardView = findViewById(R.id.country_info_layout);
+            cardView.getLocationOnScreen(location);
+            int cardViewX = location[0];
+            int cardViewY = location[1];
+
+            // Get the width and height of the cardView
+            int cardViewWidth = cardView.getWidth();
+            int cardViewHeight = cardView.getHeight();
+
+            // Check if the touch event is outside the bounds of the cardView
+            if (x < cardViewX || x > cardViewX + cardViewWidth || y < cardViewY || y > cardViewY + cardViewHeight) {
+                // Check if an item was previously selected before clearing the text and progress bar
+                if (isItemSelected) {
+                    // Clear the country info and progress bar
+                    mTested.setText("");
+                    mPositive.setText("");
+                    progressBar.setProgress(0);
+
+                    // Deselect the spinner item by setting the selection to -1
+                    countrySpinner.setSelection(-1);
+
+                    // Set the boolean variable to false as "Select" is chosen
+                    isItemSelected = false;
+                }
+
+                // Return true to consume the touch event and prevent it from propagating to other views
+                return true;
+            }
         }
+        // Return false to allow the touch event to propagate to other views
         return super.onTouchEvent(event);
     }
 }

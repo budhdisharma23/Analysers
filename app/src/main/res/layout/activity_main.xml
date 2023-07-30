@@ -1,81 +1,81 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center">
+    android:padding="@dimen/activity_padding"
+    android:id="@+id/main_layout">
 
-    <!-- Spinner -->
+    <!-- Spinner with custom background -->
     <Spinner
         android:id="@+id/country_spinner"
         android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:layout_marginTop="100dp"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintEnd_toStartOf="@id/spacer"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Spacer to create a gap between the Spinner and TextView layout -->
-    <View
-        android:id="@+id/spacer"
-        android:layout_width="300dp"
-        android:layout_height="1dp"
-        app:layout_constraintEnd_toStartOf="@id/country_spinner"
+        android:layout_height="@dimen/spinner_height"
+        android:background="@drawable/custom_spinner_background"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        app:layout_constraintEnd_toStartOf="@+id/country_info_layout"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Country Information -->
-    <LinearLayout
+    <androidx.cardview.widget.CardView
         android:id="@+id/country_info_layout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="20dp"
-        android:orientation="vertical"
-        android:layout_marginTop="100dp"
+        android:layout_marginStart="@dimen/spinner_textview_margin"
+        android:padding="@dimen/country_card_padding"
+        app:cardCornerRadius="@dimen/card_corner_radius"
+        app:cardElevation="@dimen/card_elevation"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@id/spacer"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="@id/country_spinner">
 
-        <TextView
-            android:id="@+id/country_info_text"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Country:"
-            android:textStyle="bold" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/country_info_data"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Select a country from the dropdown."
-            android:textColor="#555555" />
+            <TextView
+                android:id="@+id/tested"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/tested"
+                android:textStyle="bold" />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/positive"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/positive"
+                android:textColor="@color/text_color" />
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
 
     <!-- Linear Progress Bar -->
+
     <SeekBar
         android:id="@+id/progress_bar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/progress_bar_height"
+        android:layout_marginTop="@dimen/progress_bar_margin_top"
         android:max="100"
-        android:padding="8dp"
-        android:progress="25"
-        android:thumbTint="@color/colorAccent"
-        app:layout_constraintStart_toStartOf="parent"
+        android:progressDrawable="@drawable/custom_seekbar_progress"
+        android:thumb="@drawable/custom_seekbar_thumb"
+        app:layout_constraintBottom_toTopOf="@id/full_report_button"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/country_info_layout"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintBottom_toTopOf="@id/full_report_button" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/country_spinner" />
 
     <Button
         android:id="@+id/full_report_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="124dp"
+        android:layout_marginTop="@dimen/full_report_button_margin_top"
         android:background="@drawable/button_background"
-        android:text="Full Report"
+        android:text="@string/full_report_button_text"
         android:textColor="@android:color/white"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

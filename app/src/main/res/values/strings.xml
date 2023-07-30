@@ -1,6 +1,10 @@
 <resources>
     <string name="app_name">Analysers</string>
     <string name="country_info">Country Information: %s</string>
-    <string name="country_info_data">Total Tested: %1$d, Positive: %2$d%% (%3$d/%4$d)</string>
+    <string name="country_tested_info">Tested: %1$d</string>
+    <string name="country_info_data">Positive: %1$d%% (%2$d/%3$d)</string>
     <string name="full_report_line">%s, Tested = %d, Positive = %d%% (%d)</string>
+    <string name="tested">Tested:</string>
+    <string name="positive">Positive:</string>
+    <string name="full_report_button_text">Full Report</string>
 </resources>

@@ -6,6 +6,8 @@
     <color name="colorAccent">#FF5722</color>
     <color name="colorRed">#FF0000</color>
     <color name="colorGreen">#00A300</color>
-
+    <color name="green">#7FFF00</color>
+    <color name="default_color">#808080</color>
+    <color name="text_color">#555555</color>
     <color name="spinner_dropdown_highlight">#D9E4FF</color>
 </resources>

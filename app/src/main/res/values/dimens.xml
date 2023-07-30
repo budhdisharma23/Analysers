@@ -1,4 +1,13 @@
 <resources>
     <dimen name="spinner_dropdown_padding">8dp</dimen>
     <dimen name="spinner_dropdown_item_height">48dp</dimen>
+    <dimen name="activity_padding">16dp</dimen>
+    <dimen name="spinner_height">48dp</dimen>
+    <dimen name="spinner_textview_margin">20dp</dimen>
+    <dimen name="country_card_padding">16dp</dimen>
+    <dimen name="card_corner_radius">8dp</dimen>
+    <dimen name="card_elevation">4dp</dimen>
+    <dimen name="progress_bar_height">16dp</dimen>
+    <dimen name="progress_bar_margin_top">16dp</dimen>
+    <dimen name="full_report_button_margin_top">148dp</dimen>
 </resources>

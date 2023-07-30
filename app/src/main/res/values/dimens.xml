@@ -8,6 +8,6 @@
     <dimen name="card_corner_radius">8dp</dimen>
     <dimen name="card_elevation">4dp</dimen>
     <dimen name="progress_bar_height">16dp</dimen>
-    <dimen name="progress_bar_margin_top">16dp</dimen>
-    <dimen name="full_report_button_margin_top">148dp</dimen>
+    <dimen name="progress_bar_margin_top">60dp</dimen>
+    <dimen name="full_report_button_margin_top">100dp</dimen>
 </resources>

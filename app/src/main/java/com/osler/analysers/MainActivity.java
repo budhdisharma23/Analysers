@@ -1,7 +1,5 @@
 package com.osler.analysers;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -17,6 +15,12 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,20 +30,60 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
+/**
+ * MainActivity class represents the main activity of the application that displays Analysers
+ * data for different countries. It provides a Spinner to select a country, and a TextView and
+ * SeekBar to display the Analysers data for the selected country. It also includes a button to
+ * generate and display a management report in a Toast and writing it in file as well.
+ */
 public class MainActivity extends AppCompatActivity {
-
+    private static final String TAG = MainActivity.class.getSimpleName();
+    /**
+     * The Spinner to select a country from the list.
+     */
     private Spinner countrySpinner;
-    private TextView mTested, mPositive;
+
+    /**
+     * The TextView to display the number of tested cases for the selected country.
+     */
+    TextView mTested;
+
+    /**
+     * The TextView to display the percentage of positive cases for the selected country.
+     */
+    TextView mPositive;
+
+    /**
+     * The ProgressBar to display the percentage of positive cases visually.
+     */
     private ProgressBar progressBar;
 
+    /**
+     * The list of country names loaded from the CSV file.
+     */
     private List<String> countryList;
+
+    /**
+     * A mapping of country names to their respective Analyser data.
+     */
     private Map<String, CountryData> countryDataMap;
-    private Map<String, Long> siteCalibrationExpiryMap;
 
-    // Declare a boolean variable to keep track of selection status
+    /**
+     * A boolean variable to keep track of whether a country is selected in the Spinner or not.
+     */
     private boolean isItemSelected = false;
-    private int selectedPosition = 0;
 
+    /**
+     * The position of the previously selected item in the Spinner.
+     */
+    private final int selectedPosition = 0;
+
+    /**
+     * onCreate method is called when the activity is starting. It initializes the views and data,
+     * and sets up listeners for the Spinner and Full Report button.
+     *
+     * @param savedInstanceState A Bundle containing the activity's previously saved state.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -145,27 +189,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // New method to update the UI for the selected country
-    private void updateUIForSelectedCountry(String selectedCountry) {
-        CountryData countryData = countryDataMap.get(selectedCountry);
-        if (countryData != null) {
-            String testedInfo = getString(R.string.country_tested_info, countryData.getTested());
-            String positiveInfo = getString(R.string.country_info_data, (int) (((double) countryData.getPositive() / countryData.getTested()) * 100),
-                    countryData.getPositive(), countryData.getTested());
-            mTested.setText(testedInfo);
-            mPositive.setText(positiveInfo);
-
-            // Set the SeekBar progress and color based on positive percentage
-            int positivePercentage = (int) ((countryData.getPositive() * 100.0) / countryData.getTested());
-            progressBar.setProgress(positivePercentage);
-            if (positivePercentage < 50) {
-                progressBar.setProgressTintList(ColorStateList.valueOf(getResources().getColor(R.color.green)));
-            } else {
-                progressBar.setProgressTintList(ColorStateList.valueOf(getResources().getColor(R.color.colorRed)));
-            }
-        }
-    }
-
+    /**
+     * updateUI method calculates the percentage of positive cases for all countries and updates
+     * the SeekBar accordingly.
+     */
     private void updateUI() {
         // Calculate the percentage of positive cases
         List<CountryData> countryDataList = new ArrayList<>(countryDataMap.values());
@@ -183,6 +210,10 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setProgress(percentagePositive);
     }
 
+    /**
+     * generateManagementReport method generates a management report based on the Analyser data
+     * for all countries and displays it in a Toast message.
+     */
     private void generateManagementReport() {
         List<CountryData> countryDataList = new ArrayList<>(countryDataMap.values());
 
@@ -205,18 +236,75 @@ public class MainActivity extends AppCompatActivity {
             managementReport.append(line);
         }
 
-        // Write the report to mgmt_report.txt (you may need to handle file I/O here)
-
-        // Display the management report in a Toast (optional)
+        // Write the report to mgmt_report.txt
+        // and show the report in a Toast
+        writeReportToFile(managementReport.toString());
         Toast.makeText(this, managementReport.toString(), Toast.LENGTH_LONG).show();
     }
 
+    /**
+     * writeReportToFile method writes the management report to a file named "mgmt_report.txt" in
+     * the internal storage. If the file already exists, it rewrites the whole file with the new report.
+     * If the file does not exist, it creates a new file and writes the report to it.
+     *
+     * @param report The management report to be written to the file.
+     */
+    private void writeReportToFile(String report) {
+        File file = new File(getFilesDir(), "mgmt_report.txt");
+        BufferedWriter writer = null;
+
+        try {
+            writer = new BufferedWriter(new FileWriter(file));
+            writer.write(report);
+            writer.flush();
+            Toast.makeText(this, "Management report saved to mgmt_report.txt", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Error writing management report to file", Toast.LENGTH_SHORT).show();
+        } finally {
+            if (writer != null) {
+                try {
+                    writer.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * readDataFromCSV method reads Analysers data from the CSV file and populates the countryList
+     * and countryDataMap.
+     */
     private void readDataFromCSV() {
         InputStream inputStream = getResources().openRawResource(R.raw.data);
         Scanner scanner = new Scanner(inputStream);
         countryList = new ArrayList<>();
         countryDataMap = new HashMap<>();
 
+        // Step 1: Read expiry.txt and store calibration expiry information in a Map
+        Map<String, Long> siteCalibrationExpiryMap = new HashMap<>();
+        try {
+            InputStream expiryInputStream = getResources().openRawResource(R.raw.expiry);
+            Scanner expiryScanner = new Scanner(expiryInputStream);
+
+            while (expiryScanner.hasNextLine()) {
+                String line = expiryScanner.nextLine();
+                String[] data = line.split(",");
+                if (data.length == 2) {
+                    String siteName = data[0].trim();
+                    long expiryDate = Long.parseLong(data[1].trim());
+                    siteCalibrationExpiryMap.put(siteName, expiryDate);
+                }
+            }
+
+            expiryScanner.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Handle the exception if there's an issue reading expiry.txt
+        }
+
+        // Step 2: Read data from the CSV file
         while (scanner.hasNextLine()) {
             String line = scanner.nextLine();
             String[] nextLine = line.split(",");
@@ -226,6 +314,16 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     int tested = Integer.parseInt(nextLine[2].trim());
                     int positive = Integer.parseInt(nextLine[3].trim());
+
+                    // Step 3: Check if the site's calibration has expired
+                    if (siteCalibrationExpiryMap.containsKey(country)) {
+                        long expiryDate = siteCalibrationExpiryMap.get(country);
+                        long currentDate = System.currentTimeMillis();
+                        if (currentDate > expiryDate) {
+                            // Calibration has expired, skip adding data for this site
+                            continue;
+                        }
+                    }
 
                     CountryData countryData = countryDataMap.get(country);
                     if (countryData == null) {
@@ -242,16 +340,18 @@ public class MainActivity extends AppCompatActivity {
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                     Toast.makeText(this, "Error parsing data from CSV", Toast.LENGTH_SHORT).show();
-                    Log.e("CSV_DEBUG", "Error parsing line: " + line);
+                    Log.e(TAG, "Error parsing line: " + line);
                 }
             }
         }
         scanner.close();
-
         // Populate the spinner with country names
         populateSpinner();
     }
 
+    /**
+     * populateSpinner method populates the countrySpinner with country names using a custom ArrayAdapter.
+     */
     private void populateSpinner() {
         // Add "Select" as the first item in the countryList
         countryList.add(0, "Select");
@@ -311,7 +411,12 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void updateCountryInfo(String selectedCountry) {
+    /**
+     * updateCountryInfo method updates the TextViews and SeekBar with Analyser data for the selected country.
+     *
+     * @param selectedCountry The name of the country selected in the Spinner.
+     */
+    void updateCountryInfo(String selectedCountry) {
         CountryData countryData = countryDataMap.get(selectedCountry);
         if (countryData != null) {
             String testedInfo = getString(R.string.country_tested_info, countryData.getTested());
@@ -331,6 +436,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * onTouchEvent method is called when a touch event occurs on the activity's window.
+     * It is used to handle the scenario where the user clicks outside the country information CardView
+     * to clear the selection in the Spinner.
+     *
+     * @param event The MotionEvent that describes the touch event.
+     * @return A boolean indicating whether the touch event was handled (true) or not (false).
+     */
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_UP) {
@@ -371,5 +484,16 @@ public class MainActivity extends AppCompatActivity {
         }
         // Return false to allow the touch event to propagate to other views
         return super.onTouchEvent(event);
+    }
+
+    /**
+     * Sets the countryDataMap with the provided HashMap containing CountryData objects.
+     * This method allows injecting the countryDataMap into the MainActivity for testing purposes.
+     *
+     * @param countryDataMap The HashMap containing CountryData objects, where the keys are the
+     *                       country names and the values are the corresponding CountryData objects.
+     */
+    public void setCountryDataMap(HashMap<String, CountryData> countryDataMap) {
+        this.countryDataMap = countryDataMap;
     }
 }
